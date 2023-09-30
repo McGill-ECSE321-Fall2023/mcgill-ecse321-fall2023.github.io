@@ -15,40 +15,132 @@ You will want to clear the database after each run so that you don't waste stora
 
 The test class for the `PersonRepository` should be similar to the following code. The package and import statements have been omited for clarity.
 
-``` 
+```java 
+package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Person;
+
 @SpringBootTest
 public class PersonRepositoryTests {
 	@Autowired
 	private PersonRepository personRepository;
-	
+
 	@AfterEach
 	public void clearDatabase() {
 		personRepository.deleteAll();
 	}
-	
+
 	@Test
 	public void testPersistAndLoadPerson() {
-		// Create object
-		String name = "Anakin Skywalker";
-		Person anakin = new Person();
-		anakin.setName(name);
-		
-		// Save object
-		anakin = personRepository.save(anakin);
-		int id = anakin.getId();
-		
-		// Read object from database
-		anakin = personRepository.findPersonById(id);
-		
-		// Assert that object has correct attributes
-		assertNotNull(anakin);
-		assertEquals(name, anakin.getName());
+		// Create person.
+		String name = "Muffin Man";
+		Integer age = 40;
+		String address = "123 Drury Lane";
+		Person person = new Person();
+		person.setName(name);
+		person.setAge(age);
+		person.setAddress(address);
+
+		// Save person
+		personRepository.save(person);
+
+		// Read person from database.
+		person = personRepository.findPersonByName(name);
+
+		// Assert that person is not null and has correct attributes.
+		assertNotNull(person);
+		assertEquals(name, person.getName());
+		assertEquals(age, person.getAge());
+		assertEquals(address, person.getAddress());
+	}
+}
+```
+
+The test class for the `EventRepository` should look something like this:
+
+```java
+package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.sql.Date;
+import java.sql.Time;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Event;
+
+@SpringBootTest
+public class EventRepositoryTests {
+	@Autowired
+	private EventRepository eventRepository;
+
+	@AfterEach
+	public void clearDatabase() {
+		eventRepository.deleteAll();
+	}
+
+	@Test
+	public void testPersistAndLoadEvent() {
+		// Create event.
+        String name = "Shrek 2";
+		Date date = Date.valueOf("2023-12-01");
+		Time start = Time.valueOf("08:00:00");
+		Time end = Time.valueOf("12:00:00");
+
+		Event event = new Event();
+		event.setName(name);
+		event.setDate(date);
+		event.setStartTime(start);
+		event.setEndTime(end);
+
+		// Save event.
+		eventRepository.save(event);
+
+		// Read event from database.
+		event = eventRepository.findEventByName(name);
+
+		// Assert event is not null and has correct attributes.
+		assertNotNull(event);
+		assertEquals(name, event.getName());
+		assertEquals(date, event.getDate());
+		assertEquals(start, event.getStartTime());
+		assertEquals(end, event.getEndTime());
 	}
 }
 ```
 
 The test class for the `RegistrationRepository` should look something like this:
-``` 
+``` java
+@package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.sql.Date;
+import java.sql.Time;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Event;
+import ca.mcgill.ecse321.EventRegistration.models.Person;
+import ca.mcgill.ecse321.EventRegistration.models.Registration;
+
 @SpringBootTest
 public class RegistrationRepositoryTests {
 	@Autowired
@@ -57,67 +149,64 @@ public class RegistrationRepositoryTests {
 	private EventRepository eventRepository;
 	@Autowired
 	private RegistrationRepository registrationRepository;
-	
+
 	@AfterEach
 	public void clearDatabase() {
-		// Delete the registrations first to avoid violating not-null constraint
 		registrationRepository.deleteAll();
-		
-		personRepository.deleteAll();
 		eventRepository.deleteAll();
+		personRepository.deleteAll();
 	}
-	
+
 	@Test
 	public void testPersistAndLoadRegistration() {
-		String eventName = "Order 66";
-		Date date = Date.valueOf("2022-09-06");
-		Time startTime = Time.valueOf("16:00:00");
-		Time endTime = Time.valueOf("17:00:00");
+		// Create and persist person.
+        String personName = "Muffin Man";
+		Integer personAge = 40;
+		String personAddress = "123 Drury Lane";
+		Person person = new Person();
+		person.setName(personName);
+		person.setAge(personAge);
+		person.setAddress(personAddress);
+		personRepository.save(person);
+
+		// Create and persist event.
+		String eventName = "Shrek 2";
+		Date eventDate = Date.valueOf("2023-12-01");
+		Time eventStart = Time.valueOf("08:00:00");
+		Time eventEnd = Time.valueOf("12:00:00");
 		Event event = new Event();
 		event.setName(eventName);
-		event.setEventDate(date);
-		event.setStartTime(startTime);
-		event.setEndTime(endTime);
-		// You need to manually save this before saving the registration: Hibernate doesn't seem to do it for you
+		event.setDate(eventDate);
+		event.setStartTime(eventStart);
+		event.setEndTime(eventEnd);
 		eventRepository.save(event);
-		
-		String participantName = "Anakin Skywalker";
-		Person participant = new Person();
-		participant.setName(participantName);
-		participant = personRepository.save(participant);
-		int participantId = participant.getId();
-		
+
+		// Create registration.
 		Registration registration = new Registration();
+		registration.setPerson(person);
 		registration.setEvent(event);
-		registration.setParticipant(participant);
-		
-		registration = registrationRepository.save(registration);
-		int registrationId = registration.getId();
-		
-		registration = null;
-		event = null;
-		participant = null;
-		
-		registration = registrationRepository.findRegistrationById(registrationId);
-		
+
+		// Save registration.
+		registrationRepository.save(registration);
+
+		// Read registration from database.
+		registration = registrationRepository.findByPersonAndEvent(person, event);
 		assertNotNull(registration);
-		assertEquals(registrationId, registration.getId());
-		
-		assertNotNull(registration.getEvent());
-		assertEquals(eventName, registration.getEvent().getName());
-		
-		assertNotNull(registration.getParticipant());
-		assertEquals(participantId, registration.getParticipant().getId());
+		assertNotNull(registration.getId());
+		assertEquals(person.getName(), registration.getPerson().getName());
+		assertEquals(person.getAge(), registration.getPerson().getAge());
+		assertEquals(person.getAddress(), registration.getPerson().getAddress());
+		assertEquals(event.getName(), registration.getEvent().getName());
+		assertEquals(event.getDate(), registration.getEvent().getDate());
+		assertEquals(event.getStartTime(), registration.getEvent().getStartTime());
+		assertEquals(event.getEndTime(), registration.getEvent().getEndTime());
 	}
 }
 
 ``` 
 
-Creating a class to test the persistence of `Event` objects is left as an exercise. It is similar to the test class for `Person` objects.
-
-
 ==== Running the Tests
-To run the tests, `cd` into the `EventRegistration-Backend` folder and issue the command `./gradlew test`.
+To run the tests, `cd` into the `EventRegistration` folder and issue the command `./gradlew test`.
 
 
 ==== Debugging Failing Tests
@@ -125,6 +214,7 @@ You will almost certainly encounter failing tests at some point. When this happe
 ```
 testLogging {
 	exceptionFormat "full"
+	//...other configurations
 }
 ```
 Re-run the tests and you should see much longer stack traces with helpful hints. Focus on the "Caused by:" parts.
