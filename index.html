@@ -478,14 +478,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_debugging_failing_tests">2.6.3. Debugging Failing Tests</a></li>
 </ul>
 </li>
-<li><a href="#_assessing_code_coverage_using_eclemma">2.7. Assessing Code Coverage using EclEmma</a>
-<ul class="sectlevel3">
-<li><a href="#_getting_eclemma">2.7.1. Getting EclEmma</a></li>
-<li><a href="#_example_gradle_project_for_assessing_code_coverage">2.7.2. Example Gradle Project for Assessing Code Coverage</a></li>
-<li><a href="#_retrieving_code_coverage_metrics">2.7.3. Retrieving Code Coverage Metrics</a></li>
-</ul>
-</li>
-<li><a href="#_event_registration_application_unit_code_coverage">2.8. Event Registration Application Unit Code Coverage</a></li>
+<li><a href="#_assessing_code_coverage_using_jacoco">2.7. Assessing Code Coverage using JaCoCo</a></li>
+<li><a href="#_event_registration_application_unit_test_code_coverage">2.8. Event Registration Application Unit Test Code Coverage</a></li>
 </ul>
 </li>
 </ul>
@@ -1252,7 +1246,19 @@ public interface RegistrationRepository extends CrudRepository&lt;Registration, 
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>@SpringBootTest
+<pre class="highlight"><code class="language-java" data-lang="java">package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Person;
+
+@SpringBootTest
 public class PersonRepositoryTests {
 	@Autowired
 	private PersonRepository personRepository;
@@ -1264,21 +1270,86 @@ public class PersonRepositoryTests {
 
 	@Test
 	public void testPersistAndLoadPerson() {
-		// Create object
-		String name = "Anakin Skywalker";
-		Person anakin = new Person();
-		anakin.setName(name);
+		// Create person.
+		String name = "Muffin Man";
+		Integer age = 40;
+		String address = "123 Drury Lane";
+		Person person = new Person();
+		person.setName(name);
+		person.setAge(age);
+		person.setAddress(address);
 
-		// Save object
-		anakin = personRepository.save(anakin);
-		int id = anakin.getId();
+		// Save person
+		personRepository.save(person);
 
-		// Read object from database
-		anakin = personRepository.findPersonById(id);
+		// Read person from database.
+		person = personRepository.findPersonByName(name);
 
-		// Assert that object has correct attributes
-		assertNotNull(anakin);
-		assertEquals(name, anakin.getName());
+		// Assert that person is not null and has correct attributes.
+		assertNotNull(person);
+		assertEquals(name, person.getName());
+		assertEquals(age, person.getAge());
+		assertEquals(address, person.getAddress());
+	}
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The test class for the <code>EventRepository</code> should look something like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java">package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.sql.Date;
+import java.sql.Time;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Event;
+
+@SpringBootTest
+public class EventRepositoryTests {
+	@Autowired
+	private EventRepository eventRepository;
+
+	@AfterEach
+	public void clearDatabase() {
+		eventRepository.deleteAll();
+	}
+
+	@Test
+	public void testPersistAndLoadEvent() {
+		// Create event.
+        String name = "Shrek 2";
+		Date date = Date.valueOf("2023-12-01");
+		Time start = Time.valueOf("08:00:00");
+		Time end = Time.valueOf("12:00:00");
+
+		Event event = new Event();
+		event.setName(name);
+		event.setDate(date);
+		event.setStartTime(start);
+		event.setEndTime(end);
+
+		// Save event.
+		eventRepository.save(event);
+
+		// Read event from database.
+		event = eventRepository.findEventByName(name);
+
+		// Assert event is not null and has correct attributes.
+		assertNotNull(event);
+		assertEquals(name, event.getName());
+		assertEquals(date, event.getDate());
+		assertEquals(start, event.getStartTime());
+		assertEquals(end, event.getEndTime());
 	}
 }</code></pre>
 </div>
@@ -1288,7 +1359,24 @@ public class PersonRepositoryTests {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>@SpringBootTest
+<pre class="highlight"><code class="language-java" data-lang="java">@package ca.mcgill.ecse321.EventRegistration.dao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.sql.Date;
+import java.sql.Time;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.mcgill.ecse321.EventRegistration.models.Event;
+import ca.mcgill.ecse321.EventRegistration.models.Person;
+import ca.mcgill.ecse321.EventRegistration.models.Registration;
+
+@SpringBootTest
 public class RegistrationRepositoryTests {
 	@Autowired
 	private PersonRepository personRepository;
@@ -1299,66 +1387,63 @@ public class RegistrationRepositoryTests {
 
 	@AfterEach
 	public void clearDatabase() {
-		// Delete the registrations first to avoid violating not-null constraint
 		registrationRepository.deleteAll();
-
-		personRepository.deleteAll();
 		eventRepository.deleteAll();
+		personRepository.deleteAll();
 	}
 
 	@Test
 	public void testPersistAndLoadRegistration() {
-		String eventName = "Order 66";
-		Date date = Date.valueOf("2022-09-06");
-		Time startTime = Time.valueOf("16:00:00");
-		Time endTime = Time.valueOf("17:00:00");
+		// Create and persist person.
+        String personName = "Muffin Man";
+		Integer personAge = 40;
+		String personAddress = "123 Drury Lane";
+		Person person = new Person();
+		person.setName(personName);
+		person.setAge(personAge);
+		person.setAddress(personAddress);
+		personRepository.save(person);
+
+		// Create and persist event.
+		String eventName = "Shrek 2";
+		Date eventDate = Date.valueOf("2023-12-01");
+		Time eventStart = Time.valueOf("08:00:00");
+		Time eventEnd = Time.valueOf("12:00:00");
 		Event event = new Event();
 		event.setName(eventName);
-		event.setEventDate(date);
-		event.setStartTime(startTime);
-		event.setEndTime(endTime);
-		// You need to manually save this before saving the registration: Hibernate doesn't seem to do it for you
+		event.setDate(eventDate);
+		event.setStartTime(eventStart);
+		event.setEndTime(eventEnd);
 		eventRepository.save(event);
 
-		String participantName = "Anakin Skywalker";
-		Person participant = new Person();
-		participant.setName(participantName);
-		participant = personRepository.save(participant);
-		int participantId = participant.getId();
-
+		// Create registration.
 		Registration registration = new Registration();
+		registration.setPerson(person);
 		registration.setEvent(event);
-		registration.setParticipant(participant);
 
-		registration = registrationRepository.save(registration);
-		int registrationId = registration.getId();
+		// Save registration.
+		registrationRepository.save(registration);
 
-		registration = null;
-		event = null;
-		participant = null;
-
-		registration = registrationRepository.findRegistrationById(registrationId);
-
+		// Read registration from database.
+		registration = registrationRepository.findByPersonAndEvent(person, event);
 		assertNotNull(registration);
-		assertEquals(registrationId, registration.getId());
-
-		assertNotNull(registration.getEvent());
-		assertEquals(eventName, registration.getEvent().getName());
-
-		assertNotNull(registration.getParticipant());
-		assertEquals(participantId, registration.getParticipant().getId());
+		assertNotNull(registration.getId());
+		assertEquals(person.getName(), registration.getPerson().getName());
+		assertEquals(person.getAge(), registration.getPerson().getAge());
+		assertEquals(person.getAddress(), registration.getPerson().getAddress());
+		assertEquals(event.getName(), registration.getEvent().getName());
+		assertEquals(event.getDate(), registration.getEvent().getDate());
+		assertEquals(event.getStartTime(), registration.getEvent().getStartTime());
+		assertEquals(event.getEndTime(), registration.getEvent().getEndTime());
 	}
 }</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Creating a class to test the persistence of <code>Event</code> objects is left as an exercise. It is similar to the test class for <code>Person</code> objects.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_running_the_tests">2.6.2. Running the Tests</h4>
 <div class="paragraph">
-<p>To run the tests, <code>cd</code> into the <code>EventRegistration-Backend</code> folder and issue the command <code>./gradlew test</code>.</p>
+<p>To run the tests, <code>cd</code> into the <code>EventRegistration</code> folder and issue the command <code>./gradlew test</code>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1370,6 +1455,7 @@ public class RegistrationRepositoryTests {
 <div class="content">
 <pre class="highlight"><code>testLogging {
 	exceptionFormat "full"
+	//...other configurations
 }</code></pre>
 </div>
 </div>
@@ -1401,171 +1487,17 @@ public class RegistrationRepositoryTests {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_assessing_code_coverage_using_eclemma">2.7. Assessing Code Coverage using EclEmma</h3>
+<h3 id="_assessing_code_coverage_using_jacoco">2.7. Assessing Code Coverage using JaCoCo</h3>
 <div class="paragraph">
-<p>This tutorial covers the basics of EclEmma and retrieves code coverage metrics using it.</p>
-</div>
-<div class="sect3">
-<h4 id="_getting_eclemma">2.7.1. Getting EclEmma</h4>
-<div class="paragraph">
-<p>Install EclEmma as a plugin in your Eclipse IDE from <a href="https://www.eclemma.org/installation.html">here</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The Spring Tools Suite (STS) version of Eclipse already ships with the plugin pre-installed, so you can skip this step if you are using STS.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_example_gradle_project_for_assessing_code_coverage">2.7.2. Example Gradle Project for Assessing Code Coverage</h4>
-<div class="paragraph">
-<p>We will create a Gradle project from scratch and be testing a simple method <em>returnAverage(int[], int, int, int)</em> .</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Create a new Gradle project in Eclipse by clicking on <em>File</em> &gt; <em>New</em> &gt; <em>Other</em><br>
-image::coverage-1.png[New Project]</p>
-</li>
-<li>
-<p>Under <em>Gradle</em>, choose Gradle Project<br>
-image::coverage-2.png[New Gradle Project]</p>
-</li>
-<li>
-<p>Click on <em>Next</em>, then name your project <em>tutorial7</em>, click on <em>Finish</em><br>
-image::coverage-3.png[Project Name]<br></p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The project may take some time to be created.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Create a new package instead of the default ones for both the source and test folders (e.g <code>ca.mcgill.ecse321.tutorial7</code>) and move the default generated classes (<code>Library</code> and <code>LibraryTest</code>) to this package.<br>
-image::coverage-4.png[Create Packages]</p>
-</li>
-<li>
-<p>Change the code in the <code>Library</code> class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package ca.mcgill.ecse321.tutorial7;
-
-public class Library {
-
-	public static double returnAverage(int value[], int arraySize, int MIN, int MAX) {
-		int index, ti, tv, sum;
-		double average;
-		index = 0;
-		ti = 0;
-		tv = 0;
-		sum = 0;
-		while (ti &lt; arraySize &amp;&amp; value[index] != -999) {
-			ti++;
-			if (value[index] &gt;= MIN &amp;&amp; value[index] &lt;= MAX) {
-				tv++;
-				sum += value[index];
-			}
-			index++;
-		}
-		if (tv &gt; 0)
-			average = (double) sum / tv;
-		else
-			average = (double) -999;
-		return average;
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Change the code in the <code>LibraryTest</code> class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package ca.mcgill.ecse321.tutorial7;
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
-public class LibraryTest {
-
-	@Test
-	public void allBranchCoverageMinimumTestCaseForReturnAverageTest1() {
-		int[] value = {5, 25, 15, -999};
-		int AS = 4;
-		int min = 10;
-		int max = 20;
-		double average = Library.returnAverage(value, AS, min, max);
-		assertEquals(15, average, 0.1);
-	}
-
-	@Test
-	public void allBranchCoverageMinimumTestCaseForReturnAverageTest2() {
-		int[] value = {};
-		int AS = 0;
-		int min = 10;
-		int max = 20;
-		double average = Library.returnAverage(value, AS, min, max);
-		assertEquals(-999.0, average, 0.1);
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_retrieving_code_coverage_metrics">2.7.3. Retrieving Code Coverage Metrics</h4>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-We can straightforwardly manage code coverage using JaCoCo inside Eclipse with no configuration if we are using EclEmma Eclipse plugin.
-</td>
-</tr>
-</table>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Run the Test in coverage mode using Eclemma. Click on <em>LibraryTest</em>, <em>Coverage As</em>, <em>1 JUnit Test</em><br>
-image::coverage-5.png[Full Branch Coverage]</p>
-</li>
-<li>
-<p>Verify that we have 100% branch coverage.<br>
-image::coverage-6.png[Full Branch Coverage-Eclemma]</p>
-</li>
-</ol>
-</div>
+<p>This tutorial covers the basics of settuig up JaCoCo as a gradle plugin to assess code coverage during tests.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_event_registration_application_unit_code_coverage">2.8. Event Registration Application Unit Code Coverage</h3>
+<h3 id="_event_registration_application_unit_test_code_coverage">2.8. Event Registration Application Unit Test Code Coverage</h3>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Check the code coverage of the service unit tests in the EventRegistration-Backend project.</p>
-</li>
-<li>
-<p>If you want to run the tests using gradle, use the <em>Jacoco plugin</em> with plugin ID <code>jacoco</code>. After adding it to the <em>build.gradle</em> file, the plugin section should look like the one below:</p>
+<p>To asses code coverage using the <em>Jacoco</em> plugin for gradle, use the plugin ID <code>jacoco</code>. By adding it to the <em>build.gradle</em> file, your file should look like this:</p>
 </li>
 </ol>
 </div>
@@ -1576,6 +1508,21 @@ image::coverage-6.png[Full Branch Coverage-Eclemma]</p>
 	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
 	id 'java'
 	id 'jacoco'
+}
+
+//...other configurations
+
+tasks.named('test') {
+	useJUnitPlatform()
+	testLogging {
+		exceptionFormat "full"
+		events "passed", "failed"
+ 	}
+	finalizedBy jacocoTestReport
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn test // tests are required to run before generating the report
 }</code></pre>
 </div>
 </div>
@@ -1585,13 +1532,18 @@ image::coverage-6.png[Full Branch Coverage-Eclemma]</p>
 <p>This new plugin gives us the <code>jacocoTestReport</code> task that can generate html reports. Try executing this task from the terminal and see the generated HTML files under <em>build/reports/jacoco/test/html/</em>!</p>
 </li>
 <li>
-<p>If you wish, you can check enforce a certain treshold on the test cases with this Jacoco plugin. With the definition below, the <code>./gradlew jacocoTestCoverageVerification</code> task will fail if code coverage is below 60%.</p>
+<p>If you wish, you can check enforce a certain threshold on the test cases with this Jacoco plugin. With the definition below, the <code>./gradlew jacocoTestCoverageVerification</code> task will fail if code coverage is below 60%. A good coverage to aspire to is 75% or greater. 100 % code coverage is nearly impossible to achieve.</p>
 </li>
 </ol>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-gradle" data-lang="gradle">jacocoTestCoverageVerification {
+<pre class="highlight"><code class="language-gradle" data-lang="gradle">tasks.named('test') {
+	//...other configurations
+	finalizedBy jacocoTestCoverageVerification
+}
+
+tasks.named('jacocoTestCoverageVerification') {
 	violationRules {
 		rule {
 			limit {
@@ -1599,6 +1551,7 @@ image::coverage-6.png[Full Branch Coverage-Eclemma]</p>
 			}
 		}
 	}
+	dependsOn test // tests are required to run before checking code coverage.
 }</code></pre>
 </div>
 </div>
@@ -1608,7 +1561,7 @@ image::coverage-6.png[Full Branch Coverage-Eclemma]</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-09-22 12:40:28 -0400
+Last updated 2023-09-29 22:25:54 -0400
 </div>
 </div>
 </body>
